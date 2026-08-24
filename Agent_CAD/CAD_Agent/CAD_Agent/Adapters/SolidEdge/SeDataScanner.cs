@@ -4,84 +4,153 @@ namespace CAD_Agent.Adapters.SolidEdge
 {
     internal class SeDataScanner
     {
-        public static void Scan(SeOccurrences assemblyOccurrences, Dictionary<string, BOMItem> data, HashSet<string> processed)
-        {
-            ProcessScanning(assemblyOccurrences, data, processed, new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase));
-        }
+        private static readonly Dictionary<string, BOMItem> globalCache = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, int> typeCounters = new(StringComparer.OrdinalIgnoreCase);
 
-        private static void ProcessScanning(SeOccurrences occurrences, Dictionary<string, BOMItem> data, HashSet<string> processed, Dictionary<string, bool> assemblyCache)
+        public static void Scan(SeOccurrences occurrences, List<BOMItem> bomData, string prefix, Dictionary<string, string> projectFiles)
         {
+            Dictionary<string, BOMItem> internalCache = new(StringComparer.OrdinalIgnoreCase);
+            int levelCounter = 0;
+
+            int depth = string.IsNullOrEmpty(prefix) ? 0 : prefix.Split('.').Length;
+            string indent = new (' ', depth * 4);
+
             int count = occurrences.Count;
-
             for (int i = 1; i <= count; i++)
-            {
+            { 
                 SeOccurrence occurrence = null;
                 SeDocument document = null;
-
                 try
                 {
-                    occurrence = (SeOccurrence)occurrences.Item(i);
+                    try
+                    {
+                        occurrence = (SeOccurrence)occurrences.Item(i);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"{indent}!!! BŁĄD: Odrzucono wystąpienie z powodu: {ex.Message}");
+                        Console.ResetColor();
+                        continue;
+                    }
+
+                    string rawOccurrenceName = occurrence.Name;
+                    string nameWithoutInstance = rawOccurrenceName.Contains(":") ? rawOccurrenceName.Split(':')[0] : rawOccurrenceName;
+                    string OccurrenceName = Path.GetFileNameWithoutExtension(nameWithoutInstance);
 
                     if (occurrence.IncludeInBom == false)
                     {
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.WriteLine($"{indent}[-] Pominięto: {OccurrenceName} (Wykluczono z BOM)");
+                        Console.ResetColor();
+                        continue;
+                    }              
+
+                    if (internalCache.TryGetValue(OccurrenceName, out BOMItem existingItem))
+                    {
+                        int currentStructureQty = existingItem.Structure_Quantity;
+                        existingItem.Structure_Quantity = currentStructureQty + 1;
+
                         continue;
                     }
 
-                    document = (SeDocument)occurrence.OccurrenceDocument;
+                    levelCounter++;
+                    string currentStructureID = string.IsNullOrEmpty(prefix) ? levelCounter.ToString() : $"{prefix}.{levelCounter}";
 
-                    string filePath = null;
-
-                    try
+                    Console.WriteLine($"{indent}[{currentStructureID}] {OccurrenceName}");
+                    BOMItem newItem = new()
                     {
-                        filePath = document.FullName;
+                        Structure_ID = currentStructureID,
+                        Structure_Quantity = 1,
+                        PartNumber = OccurrenceName
+                    };
+
+                    bool isAssembly = false;
+                    if (projectFiles.TryGetValue(OccurrenceName, out string extension))
+                    {
+                        isAssembly = extension.Equals(".asm", StringComparison.OrdinalIgnoreCase);
                     }
-                    catch
+
+                    if (!globalCache.TryGetValue(OccurrenceName, out BOMItem cachedItem))
                     {
-                        continue;
-                    }
+                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        Console.WriteLine($"{indent} └─> Odczyt właściwości...");
+                        Console.ResetColor();
 
-                    if (string.IsNullOrEmpty(filePath))
-                    {
-                        continue;
-                    }
+                        document = (SeDocument)occurrence.OccurrenceDocument;
 
-                    bool isAssembly = document is SeAssembly;
+                        using SePropertiesReader reader = new(document);
 
-                    if (processed.Add(filePath))
-                    {
-                        using var properties = new SePropertiesReader(document);
-
-                        data[filePath] = new BOMItem
+                        newItem.Type = reader.Type;
+                        newItem.PARTS_Quantity = reader.Quantity;
+                        newItem.Title = reader.TitleEng ?? reader.TitlePl;
+                        newItem.Provider = reader.Provider;
+                        newItem.MaterialType = reader.MaterialName;
+                        newItem.Thickness = reader.Thickness;
+                        newItem.SizeX = reader.SizeX;
+                        newItem.SizeY = reader.SizeY;
+                        newItem.Material = reader.MechanicalMaterial;
+                        newItem.Finish = reader.Finish;
+                        newItem.Color = reader.Color;
+                        newItem.DxfDate = reader.DxfDate;
+                        
+                        string typ = string.IsNullOrEmpty(newItem.Type) ? "Brak" : newItem.Type;
+                        if (!typeCounters.ContainsKey(typ))
                         {
-                            FileName = Path.GetFileNameWithoutExtension(filePath),
-                            Title = properties.TitleEng ?? properties.TitlePl,
-                            Quantity = properties.Count
-                        };
+                            typeCounters[typ] = 0;
+                        }
+                        typeCounters[typ]++;
 
-                        if (isAssembly)
+                        newItem.Parts_ID = typeCounters[typ];
+
+                        globalCache[OccurrenceName] = newItem;
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGreen;
+                        Console.WriteLine($"{indent} └─> Sklonowano dane z pamięci podręcznej");
+                        Console.ResetColor();
+
+                        newItem.Parts_ID = cachedItem.Parts_ID;
+                        newItem.PARTS_Quantity = cachedItem.PARTS_Quantity;
+                        newItem.Type = cachedItem.Type;
+                        newItem.Title = cachedItem.Title;
+                        newItem.Provider = cachedItem.Provider;
+                        newItem.MaterialType = cachedItem.MaterialType;
+                        newItem.Thickness = cachedItem.Thickness;
+                        newItem.SizeX = cachedItem.SizeX;
+                        newItem.SizeY = cachedItem.SizeY;
+                        newItem.Material = cachedItem.Material;
+                        newItem.Class = cachedItem.Class;
+                        newItem.Finish = cachedItem.Finish;
+                        newItem.Color = cachedItem.Color;
+                        newItem.Mass = cachedItem.Mass;
+                        newItem.Thumbnail = cachedItem.Thumbnail;
+                        newItem.DxfDate = cachedItem.DxfDate;
+                    }
+
+                    internalCache.Add(OccurrenceName, newItem);
+                    bomData.Add(newItem);
+
+                    if (isAssembly && newItem.Type == "A")
+                    {
+                        document ??= (SeDocument)occurrence.OccurrenceDocument;
+
+                        if (document is SeAssembly subAssemblyDoc)
                         {
-                            assemblyCache[filePath] = properties.IsTypeA;
+                            SeOccurrences subOccurrences = null;
+                            try
+                            {
+                                subOccurrences = subAssemblyDoc.Occurrences;
+                                Scan(subOccurrences, bomData, currentStructureID, projectFiles);
+                            }
+                            finally
+                            {
+                                SeHelper.ReleaseCom(ref subOccurrences);
+                            }
                         }
                     }
 
-                    if (isAssembly && assemblyCache.TryGetValue(filePath, out bool isTypeA) && isTypeA)
-                    {
-                        SeOccurrences subOccurrences = null;
-
-                        try
-                        {
-                            subOccurrences = ((SeAssembly)document).Occurrences;
-                            ProcessScanning(subOccurrences, data, processed, assemblyCache);
-                        }
-                        finally
-                        {
-                            SeHelper.ReleaseCom(ref subOccurrences);
-                        }
-                    }
-                }
-                catch
-                {
-                    continue;
                 }
                 finally
                 {

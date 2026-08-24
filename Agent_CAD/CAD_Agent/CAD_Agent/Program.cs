@@ -4,7 +4,7 @@ namespace CAD_Agent
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]))
             {
@@ -32,11 +32,14 @@ namespace CAD_Agent
 
             string topLevelAssemblyName = Path.GetFileNameWithoutExtension(topLevelAssemblyPath);
 
+            string projectDirectory = Path.GetDirectoryName(topLevelAssemblyPath);
+
             Console.WriteLine("============================================================");
             Console.WriteLine("=== Wybór pliku głównego złożenia pod dane dla BOM VIEW. ===");
             Console.WriteLine("============================================================");          
             Console.WriteLine($"Nazwa pliku: {topLevelAssemblyName}");
             Console.WriteLine($"Ścieżka do pliku: {topLevelAssemblyPath}");
+            Console.WriteLine($"Folder projektu: {projectDirectory}");
             Console.WriteLine($"Czy na pewno chcesz kontynuować?");
             Console.WriteLine("============================================================");
             Console.Write("Wciśnij [Y/y] aby kontynuować (Tak) lub [N/n] aby anulować (Nie)... ");
@@ -72,8 +75,43 @@ namespace CAD_Agent
             {
                 var adapter = Factory.GetAdapter(topLevelAssemblyPath);
 
-                var bom = adapter.GetBOM(topLevelAssemblyPath);
+                var bomData = adapter.GetBOMData(topLevelAssemblyPath);
 
+
+                Console.WriteLine();
+                Console.WriteLine("============================================================");
+                Console.WriteLine("Rozpoczynamy synchronizację z bazą danych Supabase...");
+
+                string url = " ";
+                string key = " ";
+
+                string jsonBody = JsonConvert.SerializeObject(bomData);
+                var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+                var client = new HttpClient();
+
+                client.DefaultRequestHeaders.Add("apikey", key);
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {key}");
+                client.DefaultRequestHeaders.Add("Prefer", "return=minimal"); 
+
+                Console.WriteLine("Przesyłanie zestawienia BOM (bezpośrednio przez API)...");
+
+                var response = await client.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("============================================================");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Zakończono pracę. Dane pomyślnie zapisane w chmurze!");
+                    Console.ResetColor();
+                    Console.WriteLine("============================================================");
+                }
+                else
+                {
+                    string errorResponse = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Serwer odrzucił dane: {response.StatusCode}. Szczegóły: {errorResponse}");
+                }
                 Console.WriteLine();
                 Console.WriteLine("============================================================");
                 Console.WriteLine($"Zakończono pracę.");

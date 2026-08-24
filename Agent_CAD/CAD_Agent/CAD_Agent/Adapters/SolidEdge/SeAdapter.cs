@@ -5,13 +5,23 @@ namespace CAD_Agent.Adapters.SolidEdge
 {
     public class SeAdapter : ICADAdapter
     {
-        public List<BOMItem> GetBOM(string filePath)
+        public List<(string FileName, string Path)> _projectFiles;
+        public List<BOMItem> GetBOMData(string filePath)
         {
-            List<BOMItem> bom = new ();
+            string projectDirectory = Path.GetDirectoryName(filePath);
 
-            Dictionary<string, BOMItem> data = new();
-            HashSet<string> processed = new();
+            Dictionary<string, string> projectFiles = Directory
+                .GetFiles(projectDirectory, "*.*", SearchOption.TopDirectoryOnly)
+                .Where(f => f.EndsWith(".asm", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".par", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".psm", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(
+                    f => Path.GetFileNameWithoutExtension(f), 
+                    f => Path.GetExtension(f).ToLower()       
+                );
 
+            List<BOMItem> bomData = new ();
+     
             SeApp application = null;
             SeDocument document = null;
             SeAssembly assembly = null;
@@ -45,19 +55,13 @@ namespace CAD_Agent.Adapters.SolidEdge
                 try
                 {
                     occurrences = assembly.Occurrences;
-                    SeDataScanner.Scan(occurrences, data, processed);
-                    bom = data.Values.ToList();
+                    SeDataScanner.Scan(occurrences, bomData, string.Empty, projectFiles);
                 }
                 finally
                 {
                     SeHelper.ReleaseCom(ref occurrences);
                 }
                 Console.WriteLine("Udało się przeskanować drzewo.");
-
-                // 4. 
-                Console.WriteLine("============================================================");
-                Console.WriteLine("Wyniki:");
-                Console.WriteLine("============================================================");
             }
             finally
             {
@@ -66,7 +70,7 @@ namespace CAD_Agent.Adapters.SolidEdge
                 Cleanup(application, wasOpenByAgent);
             }
 
-            return bom;
+            return bomData;
         }
 
         private SeApp GetApplication(out bool wasOpenByAgent)
@@ -99,7 +103,7 @@ namespace CAD_Agent.Adapters.SolidEdge
             }
         }
 
-        public static SeDocument GetOpenDocument(SeApp application, string filePath)
+        private static SeDocument GetOpenDocument(SeApp application, string filePath)
         {
             SeDocument document = null;
             SeDocuments documents = null;

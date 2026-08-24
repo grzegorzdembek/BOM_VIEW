@@ -10,6 +10,11 @@ global using Microsoft.Win32;
 global using System.Runtime.InteropServices.ComTypes;
 global using System.Diagnostics;
 global using SolidEdgeFramework;
+
+global using Newtonsoft.Json;
+global using System.Net.Http;
+global using System.Threading.Tasks;
+
 global using SeApp = SolidEdgeFramework.Application;
 global using SeDocument = SolidEdgeFramework.SolidEdgeDocument;
 global using SeAssembly = SolidEdgeAssembly.AssemblyDocument;

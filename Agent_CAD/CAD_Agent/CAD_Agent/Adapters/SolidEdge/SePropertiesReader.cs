@@ -17,63 +17,44 @@
             _docPropertySets = (SePropertySets)document.Properties;
         }
 
-        public string Color => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.Color);
+        // Parts_Quantity. Int
+        public int Quantity
+        {
+            get
+            {
+                object rawValue = _isFileMode ? GetCustomFileProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Quantity) : GetCustomDocProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Quantity);
+                return (rawValue != null && int.TryParse(rawValue.ToString(), out int count)) ? count : 0;
+            }
+        }
 
-        public string Finish => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.Finish);
+        // 1. Type. String
+        public string Type => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.Type);
 
+        // 2. Title. String
         public string TitleEng => GetPropertyString(Constants.SeProperties.SummarySet, Constants.SeProperties.TitleEng);
-
         public string TitlePl => GetPropertyString(Constants.SeProperties.SummarySet, Constants.SeProperties.TitlePl);
 
-        public string Type
+        // 3. Provider. String
+        public string Provider => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.Provider);
+
+        // 4. Material Name. String
+        public string MaterialName => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.MaterialName);
+
+        // 5. Thickness. Double
+        public double Thickness => GetDimensionAsDouble(Constants.SeProperties.CustomSet, Constants.SeProperties.Thickness);
+
+        // 6. Width. Double
+        public double SizeX => GetDimensionAsDouble(Constants.SeProperties.CustomSet, Constants.SeProperties.SizeX);
+
+        // 7. Length. Double
+        public double SizeY => GetDimensionAsDouble(Constants.SeProperties.CustomSet, Constants.SeProperties.SizeY);
+
+        // 8. Mechanical Material. String
+        public string MechanicalMaterial
         {
             get
             {
-                return GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.Type);
-            }
-            set
-            {
-                SetProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Type, value);
-            }
-        }
-
-        public int Status
-        {
-            get
-            {
-                object val = _isFileMode ? GetCustomFileProperty(Constants.SeProperties.ExtendedSummarySet, Constants.SeProperties.Status) : GetCustomDocProperty(Constants.SeProperties.ExtendedSummarySet, Constants.SeProperties.Status);
-                return val != null ? (int)val : -1;
-            }
-        }
-
-        public string Thickness
-        {
-            get
-            {
-                object rawValue = _isFileMode ? GetCustomFileProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Thickness) : GetCustomDocProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Thickness);
-
-                if (rawValue != null)
-                {
-                    string thickness = rawValue.ToString().Replace("mm", "").Replace(" ", "").Trim();
-                    thickness = thickness.Replace('.', ',');
-
-                    if (thickness.Contains(","))
-                    {
-                        thickness = thickness.TrimEnd('0').TrimEnd(',');
-                    }
-
-                    return thickness.Replace(',', '_');
-                }
-
-                return null;
-            }
-        }
-
-        public string Material
-        {
-            get
-            {
-                object rawValue = _isFileMode ? GetCustomFileProperty(Constants.SeProperties.MechanicalModeling, Constants.SeProperties.Material) : GetCustomDocProperty(Constants.SeProperties.MechanicalModeling, Constants.SeProperties.Material);
+                object rawValue = _isFileMode ? GetCustomFileProperty(Constants.SeProperties.MechanicalModelingSet, Constants.SeProperties.Material) : GetCustomDocProperty(Constants.SeProperties.MechanicalModelingSet, Constants.SeProperties.Material);
 
                 if (rawValue != null)
                 {
@@ -90,63 +71,19 @@
             }
         }
 
-        public string MaterialName => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.MaterialName);
+        // 9. Finish. String
+        public string Finish => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.Finish);
 
-        public int Count
-        {
-            get
-            {
-                object rawValue = _isFileMode ? GetCustomFileProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Count) : GetCustomDocProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Count);
-                return (rawValue != null && int.TryParse(rawValue.ToString(), out int count)) ? count : 0;
-            }
-            set
-            {
-                SetProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.Count, value);
-            }
-        }
+        // 10. Color. String 
+        public string Color => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.Color);
 
+        // 11. Mass
+        // to do
+
+        // 12. Dxf. String
         public string DxfDate => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.DxfDate);
 
-        public string SizeX => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.SizeX);
-
-        public string SizeY => GetPropertyString(Constants.SeProperties.CustomSet, Constants.SeProperties.SizeY);
-
-        public bool HasType => !string.IsNullOrEmpty(Type);
-
-        public bool HasStatus => Status >= 0;
-
-        public bool HasThickness => !string.IsNullOrEmpty(Thickness);
-
-        public bool HasMaterial => !string.IsNullOrEmpty(Material);
-
-        public bool HasCount => Count > 0;
-
-        public bool HasDxfDate => !string.IsNullOrEmpty(DxfDate);
-
-        public bool IsStatusAvailable => Status == 0;
-
-        public bool IsTypeA => Type == Constants.SePartTypes.Assembly;
-
-        public bool IsTypeB => Type == Constants.SePartTypes.SheetMetal;
-
-        public bool IsTypeC => Type == Constants.SePartTypes.Part;
-
-        public bool IsTypeK => Type == Constants.SePartTypes.Steelmaking;
-
-        public bool IsTypeH => Type == Constants.SePartTypes.Commercial;
-
-        public bool IsTypeN => Type == Constants.SePartTypes.Standard;
-
-        public void UpdateDxfDate()
-        {
-            SetProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.DxfDate, DateTime.Now.ToString("yyyy-MM-dd-HH-mm"));
-        }
-
-        public void ClearDxfDate()
-        {
-            SetProperty(Constants.SeProperties.CustomSet, Constants.SeProperties.DxfDate, string.Empty);
-        }
-
+        /*================================================================================================================*/
         private string GetPropertyString(string setName, string propName)
         {
             object rawValue = _isFileMode ? GetCustomFileProperty(setName, propName) : GetCustomDocProperty(setName, propName);
@@ -315,6 +252,28 @@
                     }
                 }
             }
+        }
+
+        private double GetDimensionAsDouble(string setName, string propName)
+        {
+            string rawValue = GetPropertyString(setName, propName);
+
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return 0.0;
+            }
+
+            string cleaned = rawValue.ToUpper()
+                                     .Replace("MM", "")
+                                     .Replace(" ", "")
+                                     .Replace(",", ".");
+
+            if (double.TryParse(cleaned, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
+            {
+                return result;
+            }
+
+            return 0.0;
         }
 
         protected virtual void Dispose(bool disposing)
