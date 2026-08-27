@@ -1,4 +1,5 @@
-﻿using Factory = CAD_Agent.Factories.CADAdapterFactory;
+﻿using CAD_Agent.Services;
+using CAD_Agent.Factories;
 
 namespace CAD_Agent
 {
@@ -73,48 +74,32 @@ namespace CAD_Agent
 
             try
             {
-                var adapter = Factory.GetAdapter(topLevelAssemblyPath);
-
+                var adapter = CADAdapterFactory.GetAdapter(topLevelAssemblyPath);
                 var bomData = adapter.GetBOMData(topLevelAssemblyPath);
 
+                // PROJECT NAME
+                foreach (var item in bomData)
+                {
+                    item.ProjectName = topLevelAssemblyName;
+                }
 
                 Console.WriteLine();
                 Console.WriteLine("============================================================");
                 Console.WriteLine("Rozpoczynamy synchronizację z bazą danych Supabase...");
 
-                string url = " ";
-                string key = " ";
+                var supaBaseService = new SupabaseService();
 
-                string jsonBody = JsonConvert.SerializeObject(bomData);
-                var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+                Console.WriteLine($"Czyszczenie starych danych dla projektu: {topLevelAssemblyName}...");
+                await supaBaseService.DeleteProjectDataAsync(topLevelAssemblyName);
 
-                var client = new HttpClient();
+                Console.WriteLine("Wysyłanie zaktualizowanego zestawienia BOM...");
+                await supaBaseService.UploadBOMDataAsync(bomData);
 
-                client.DefaultRequestHeaders.Add("apikey", key);
-                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {key}");
-                client.DefaultRequestHeaders.Add("Prefer", "return=minimal"); 
-
-                Console.WriteLine("Przesyłanie zestawienia BOM (bezpośrednio przez API)...");
-
-                var response = await client.PostAsync(url, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine();
-                    Console.WriteLine("============================================================");
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("Zakończono pracę. Dane pomyślnie zapisane w chmurze!");
-                    Console.ResetColor();
-                    Console.WriteLine("============================================================");
-                }
-                else
-                {
-                    string errorResponse = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Serwer odrzucił dane: {response.StatusCode}. Szczegóły: {errorResponse}");
-                }
                 Console.WriteLine();
                 Console.WriteLine("============================================================");
-                Console.WriteLine($"Zakończono pracę.");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Dane pomyślnie zapisane w chmurze.");
+                Console.ResetColor();
                 Console.WriteLine("============================================================");
             }
             catch (Exception ex)

@@ -33,10 +33,8 @@ namespace CAD_Agent.Adapters.SolidEdge
                         Console.ResetColor();
                         continue;
                     }
-
-                    string rawOccurrenceName = occurrence.Name;
-                    string nameWithoutInstance = rawOccurrenceName.Contains(":") ? rawOccurrenceName.Split(':')[0] : rawOccurrenceName;
-                    string OccurrenceName = Path.GetFileNameWithoutExtension(nameWithoutInstance);
+                    string OccurrencePath = occurrence.OccurrenceFileName;         
+                    string OccurrenceName = Path.GetFileNameWithoutExtension(OccurrencePath);
 
                     if (occurrence.IncludeInBom == false)
                     {
@@ -48,16 +46,16 @@ namespace CAD_Agent.Adapters.SolidEdge
 
                     if (internalCache.TryGetValue(OccurrenceName, out BOMItem existingItem))
                     {
-                        int currentStructureQty = existingItem.Structure_Quantity;
-                        existingItem.Structure_Quantity = currentStructureQty + 1;
+                        int currentStructureQuantity = existingItem.Structure_Quantity;
+                        existingItem.Structure_Quantity = currentStructureQuantity + 1;
 
                         continue;
                     }
 
                     levelCounter++;
                     string currentStructureID = string.IsNullOrEmpty(prefix) ? levelCounter.ToString() : $"{prefix}.{levelCounter}";
-
                     Console.WriteLine($"{indent}[{currentStructureID}] {OccurrenceName}");
+
                     BOMItem newItem = new()
                     {
                         Structure_ID = currentStructureID,
@@ -65,10 +63,10 @@ namespace CAD_Agent.Adapters.SolidEdge
                         PartNumber = OccurrenceName
                     };
 
-                    bool isAssembly = false;
+                    bool isAsmExtension = false;
                     if (projectFiles.TryGetValue(OccurrenceName, out string extension))
                     {
-                        isAssembly = extension.Equals(".asm", StringComparison.OrdinalIgnoreCase);
+                        isAsmExtension = extension.Equals(".asm", StringComparison.OrdinalIgnoreCase);
                     }
 
                     if (!globalCache.TryGetValue(OccurrenceName, out BOMItem cachedItem))
@@ -85,11 +83,11 @@ namespace CAD_Agent.Adapters.SolidEdge
                         newItem.PARTS_Quantity = reader.Quantity;
                         newItem.Title = reader.TitleEng ?? reader.TitlePl;
                         newItem.Provider = reader.Provider;
-                        newItem.MaterialType = reader.MaterialName;
+                        newItem.MaterialName = reader.MaterialName;
                         newItem.Thickness = reader.Thickness;
                         newItem.SizeX = reader.SizeX;
                         newItem.SizeY = reader.SizeY;
-                        newItem.Material = reader.MechanicalMaterial;
+                        newItem.MechanicalMaterial = reader.MechanicalMaterial;
                         newItem.Finish = reader.Finish;
                         newItem.Color = reader.Color;
                         newItem.DxfDate = reader.DxfDate;
@@ -116,11 +114,11 @@ namespace CAD_Agent.Adapters.SolidEdge
                         newItem.Type = cachedItem.Type;
                         newItem.Title = cachedItem.Title;
                         newItem.Provider = cachedItem.Provider;
-                        newItem.MaterialType = cachedItem.MaterialType;
+                        newItem.MaterialName = cachedItem.MaterialName;
                         newItem.Thickness = cachedItem.Thickness;
                         newItem.SizeX = cachedItem.SizeX;
                         newItem.SizeY = cachedItem.SizeY;
-                        newItem.Material = cachedItem.Material;
+                        newItem.MechanicalMaterial = cachedItem.MechanicalMaterial;
                         newItem.Class = cachedItem.Class;
                         newItem.Finish = cachedItem.Finish;
                         newItem.Color = cachedItem.Color;
@@ -132,7 +130,7 @@ namespace CAD_Agent.Adapters.SolidEdge
                     internalCache.Add(OccurrenceName, newItem);
                     bomData.Add(newItem);
 
-                    if (isAssembly && newItem.Type == "A")
+                    if (isAsmExtension && newItem.Type == "A")
                     {
                         document ??= (SeDocument)occurrence.OccurrenceDocument;
 

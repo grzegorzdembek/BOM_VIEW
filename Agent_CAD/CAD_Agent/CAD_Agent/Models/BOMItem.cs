@@ -48,6 +48,9 @@ namespace CAD_Agent.Models
 {
     public class BOMItem
     {
+        [JsonProperty("project_name")]
+        public string ProjectName { get; set; }
+
         [JsonProperty("structure_id")]
         public string Structure_ID { get; set; }        // Nr w strukturze
 
@@ -80,8 +83,8 @@ namespace CAD_Agent.Models
         public string Provider { get; set; }            // Dostawca
 
 
-        [JsonProperty("material_type")]
-        public string MaterialType { get; set; }        // Rodzaj materiału (MaterialName)
+        [JsonProperty("material_name")]
+        public string MaterialName { get; set; }        // Rodzaj materiału (MaterialName)
 
 
         [JsonProperty("thickness")]
@@ -96,8 +99,8 @@ namespace CAD_Agent.Models
         public double SizeY { get; set; }               // Długość [mm]
 
 
-        [JsonProperty("material")]
-        public string Material { get; set; }            // Materiał (MechanicalMaterial)
+        [JsonProperty("mechanical_material")]
+        public string MechanicalMaterial { get; set; }            // Materiał (MechanicalMaterial)
 
 
         [JsonProperty("class")]
