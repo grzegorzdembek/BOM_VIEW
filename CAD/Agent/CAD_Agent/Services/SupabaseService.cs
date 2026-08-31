@@ -9,12 +9,13 @@ namespace CAD_Agent.Services
 
         public SupabaseService()
         {
-            if (!File.Exists("secrets.txt"))
+            string secretsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "secrets.txt");
+            if (!File.Exists(secretsPath))
             {
-                throw new FileNotFoundException("Brak pliku secrets.txt z kluczami do bazy danych!");
+                throw new FileNotFoundException("Brak pliku secrets.txt z danymi do Supabase.");
             }
 
-            string[] secrets = File.ReadAllLines("secrets.txt");
+            string[] secrets = File.ReadAllLines(secretsPath);
             _url = secrets[0].Trim();
             _apiKey = secrets[1].Trim();
         }

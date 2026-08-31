@@ -11,7 +11,7 @@ namespace CAD_Agent.Adapters.SolidEdge
             string projectDirectory = Path.GetDirectoryName(filePath);
 
             Dictionary<string, string> projectFiles = Directory
-                .GetFiles(projectDirectory, "*.*", SearchOption.TopDirectoryOnly)
+                .GetFiles(projectDirectory, "*.*", SearchOption.AllDirectories)
                 .Where(f => f.EndsWith(".asm", StringComparison.OrdinalIgnoreCase) ||
                             f.EndsWith(".par", StringComparison.OrdinalIgnoreCase) ||
                             f.EndsWith(".psm", StringComparison.OrdinalIgnoreCase))
@@ -65,6 +65,15 @@ namespace CAD_Agent.Adapters.SolidEdge
             }
             finally
             {
+                try
+                {
+                    assembly?.Close(false);
+                    document?.Close(false);
+                }
+                catch
+                {
+
+                }
                 SeHelper.ReleaseCom(ref assembly);
                 SeHelper.ReleaseCom(ref document);
                 Cleanup(application, wasOpenByAgent);
