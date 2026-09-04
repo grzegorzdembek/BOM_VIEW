@@ -2,7 +2,7 @@
 
 namespace CAD_Agent.Services
 {
-    public class SupabaseService
+    internal class SupabaseService
     {
         private readonly string _url;
         private readonly string _apiKey;
@@ -55,9 +55,67 @@ namespace CAD_Agent.Services
                 string errorResponse = await response.Content.ReadAsStringAsync();
                 throw new Exception($"Nie udało się wyczyścić starych danych: {response.StatusCode}. Szczegóły: {errorResponse}");
             }
+        }
 
+        public string GetPublicThumbnailUrl(string projectName, string fileName)
+        {
+            Uri uri = new (_url);
+            string baseUrl = $"{uri.Scheme}://{uri.Host}";
 
+            string safeProject = Uri.EscapeDataString(projectName);
+            string safeFile = Uri.EscapeDataString(fileName);
 
+            return $"{baseUrl}/storage/v1/object/public/thumbnails/{safeProject}/{safeFile}";
+        }
+
+        public async Task UploadThumbnailsAsync(string projectDirectory, string projectName)
+        {
+            string thumbnailsDir = Path.Combine(projectDirectory, "Miniatury");
+            if (!Directory.Exists(thumbnailsDir))
+            {
+                return;
+            }
+
+            string[] files = Directory.GetFiles(thumbnailsDir, "*.jpg");
+            if (files.Length == 0)
+            {
+                return;
+            }
+
+            Uri uri = new (_url);
+            string baseUrl = $"{uri.Scheme}://{uri.Host}";
+            string safeProject = Uri.EscapeDataString(projectName);
+
+            using HttpClient client = new();
+            client.DefaultRequestHeaders.Add("apikey", _apiKey);
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+
+            int counter = 0;
+            foreach (string filePath in files)
+            {
+                string fileName = Path.GetFileName(filePath);
+                string safeFile = Uri.EscapeDataString(fileName);
+                string uploadUrl = $"{baseUrl}/storage/v1/object/thumbnails/{safeProject}/{safeFile}";
+
+                byte[] fileBytes = File.ReadAllBytes(filePath);
+                using ByteArrayContent content = new(fileBytes);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+
+                var response = await client.PostAsync(uploadUrl, content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string error = await response.Content.ReadAsStringAsync();
+                    if (!error.Contains("already exists"))
+                    {
+                        Console.WriteLine($"\n[Ostrzeżenie] Nie udało się wysłać {fileName}: {error}");
+                    }
+                }
+
+                counter++;
+                Console.Write($"\rWysyłanie miniatur: {counter}/{files.Length}");
+            }
+            Console.WriteLine();
         }
     }
 }

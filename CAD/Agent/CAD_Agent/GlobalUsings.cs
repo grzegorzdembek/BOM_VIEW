@@ -3,13 +3,14 @@ global using System.Collections.Generic;
 global using System.IO;
 global using System.Linq;
 global using System.Text;
-global using System.Drawing;
 global using System.Reflection;
 global using System.Runtime.InteropServices;
 global using Microsoft.Win32;
 global using System.Runtime.InteropServices.ComTypes;
 global using System.Diagnostics;
 global using SolidEdgeFramework;
+global using System.Drawing;
+global using System.Drawing.Imaging;
 
 global using Newtonsoft.Json;
 global using System.Net.Http;

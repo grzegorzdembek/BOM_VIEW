@@ -3,22 +3,26 @@ using CAD_Agent.Models;
 
 namespace CAD_Agent.Adapters.SolidEdge
 {
-    public class SeAdapter : ICADAdapter
+    internal class SeAdapter : ICADAdapter
     {
-        public List<(string FileName, string Path)> _projectFiles;
         public List<BOMItem> GetBOMData(string filePath)
         {
             string projectDirectory = Path.GetDirectoryName(filePath);
+            string thumbnailsDirectory = Path.Combine(projectDirectory, "Miniatury");
+            Directory.CreateDirectory(thumbnailsDirectory);
 
             Dictionary<string, string> projectFiles = Directory
                 .GetFiles(projectDirectory, "*.*", SearchOption.AllDirectories)
                 .Where(f => f.EndsWith(".asm", StringComparison.OrdinalIgnoreCase) ||
                             f.EndsWith(".par", StringComparison.OrdinalIgnoreCase) ||
                             f.EndsWith(".psm", StringComparison.OrdinalIgnoreCase))
-                .ToDictionary(
-                    f => Path.GetFileNameWithoutExtension(f), 
-                    f => Path.GetExtension(f).ToLower()       
-                );
+                .ToDictionary(f => Path.GetFileNameWithoutExtension(f), f => Path.GetExtension(f).ToLower());
+
+            Dictionary<string, string> thumbnails = Directory
+                .GetFiles(thumbnailsDirectory, "*.jpg", SearchOption.TopDirectoryOnly)
+                .ToDictionary(f => Path.GetFileNameWithoutExtension(f),
+                              f => f,
+                              StringComparer.OrdinalIgnoreCase);
 
             List<BOMItem> bomData = new ();
      
@@ -29,24 +33,22 @@ namespace CAD_Agent.Adapters.SolidEdge
             bool wasOpenByAgent = false;
             try
             {
-                // 1.
-                Console.WriteLine("============================================================");
-                Console.WriteLine("Rozpoczynamy połączenie z aplikacją Solid Edge.");
-                Console.WriteLine("============================================================");
+                Console.WriteLine();
+                Console.WriteLine("2. Rozpoczynamy połączenie z aplikacją Solid Edge:");
                 application = GetApplication(out wasOpenByAgent);
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Udało się połączyć z Solid Edge.");
+                Console.ResetColor();
 
-                // 2.
-                Console.WriteLine("============================================================");
-                Console.WriteLine("Rozpoczynamy otwieranie głównego złożenia.");
-                Console.WriteLine("============================================================");
+                Console.WriteLine();
+                Console.WriteLine("3. Rozpoczynamy otwieranie głównego złożenia:");
                 document = GetOpenDocument(application, filePath);
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Udało się otworzyć główne złożenie.");
+                Console.ResetColor();
 
-                // 3.
-                Console.WriteLine("============================================================");
-                Console.WriteLine("Rozpoczynamy skanowanie drzewa głównego złożenia.");
-                Console.WriteLine("============================================================");
+                Console.WriteLine();
+                Console.WriteLine("4. Rozpoczynamy skanowanie drzewa głównego złożenia:");
                 if (document is SeAssembly assemblyDocument)
                 {
                     assembly = assemblyDocument;
@@ -55,13 +57,20 @@ namespace CAD_Agent.Adapters.SolidEdge
                 try
                 {
                     occurrences = assembly.Occurrences;
-                    SeDataScanner.Scan(occurrences, bomData, string.Empty, projectFiles);
+                    SeDataScanner.Scan(occurrences, 
+                                       bomData, 
+                                       string.Empty, 
+                                       projectFiles, 
+                                       thumbnails, 
+                                       thumbnailsDirectory);
                 }
                 finally
                 {
                     SeHelper.ReleaseCom(ref occurrences);
                 }
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Udało się przeskanować drzewo.");
+                Console.ResetColor();
             }
             finally
             {

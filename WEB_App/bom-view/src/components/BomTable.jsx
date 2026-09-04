@@ -2,21 +2,21 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient'; 
 
 export default function BomTable() {
-  const [daneBOM, setDaneBOM] = useState([]);
+  const [bomData, setBomData] = useState([]);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [currentView, setCurrentView] = useState('STRUCTURE');
 
   useEffect(() => {
-    async function pobierzDaneZChmury() {
+    async function fetchDataFromCloud() {
       const { data, error } = await supabase
         .from('bom_items') 
         .select('*');
 
-     if (error) {
+      if (error) {
         console.error('Błąd połączenia z magazynem:', error.message);
         setErrorMsg(error.message);
       } else {
-        
-        const posortowaneDane = data.sort((a, b) => {
+        const sortedData = data.sort((a, b) => {
           const aParts = a.structure_id.split('.').map(Number);
           const bParts = b.structure_id.split('.').map(Number);
           
@@ -28,27 +28,72 @@ export default function BomTable() {
           return 0;
         });
 
-        setDaneBOM(posortowaneDane); 
-        console.log('Dane posortowane i gotowe do wyświetlenia:', posortowaneDane); 
+        setBomData(sortedData); 
       }
     }
 
-    pobierzDaneZChmury(); 
+    fetchDataFromCloud(); 
   }, []); 
+
+  let processedData = bomData.filter((part) => {
+    if (currentView === 'STRUCTURE') return true; 
+    if (currentView === 'ASSEMBLIES') return part.type === 'A'; 
+    if (currentView === 'SHEETS') return part.type === 'B';
+    if (currentView === 'PARTS') return part.type === 'C';
+    return true;
+  });
+
+  if (currentView !== 'STRUCTURE') {
+    const uniquePartsMap = new Map();
+    processedData.forEach((part) => {
+      if (!uniquePartsMap.has(part.part_number)) {
+        uniquePartsMap.set(part.part_number, part);
+      }
+    });
+    processedData = Array.from(uniquePartsMap.values());
+  }
 
   return (
     <div className="table-container">
-      <h2>Podgląd Danych</h2>
-      
-      {errorMsg && <p style={{ color: 'red' }}>Błąd bazy: {errorMsg}</p>}
+      <div style={{ padding: '20px 20px 0 20px' }}>
+        <h2>Podgląd Danych </h2>
+      </div>
 
-      {/* Ten specjalny div włącza bezpieczne przewijanie poziome, gdy tabela jest za szeroka */}
+      <div className="view-filters">
+        <button 
+          className={`view-btn ${currentView === 'STRUCTURE' ? 'active' : ''}`} 
+          onClick={() => setCurrentView('STRUCTURE')}
+        >
+          Lista Strukturalna
+        </button>
+        <button 
+          className={`view-btn ${currentView === 'ASSEMBLIES' ? 'active' : ''}`} 
+          onClick={() => setCurrentView('ASSEMBLIES')}
+        >
+          Lista Złożenia
+        </button>
+        <button 
+          className={`view-btn ${currentView === 'SHEETS' ? 'active' : ''}`} 
+          onClick={() => setCurrentView('SHEETS')}
+        >
+          Lista Blach
+        </button>
+        <button 
+          className={`view-btn ${currentView === 'PARTS' ? 'active' : ''}`} 
+          onClick={() => setCurrentView('PARTS')}
+        >
+          Lista Części
+        </button>
+      </div>
+
+      {errorMsg && <p style={{ color: 'red', padding: '0 20px' }}>Błąd bazy: {errorMsg}</p>}
+
       <div className="table-scroll-wrapper">
         <table className="bom-table">
           <thead>
             <tr>
-              <th>Lp_S</th>
-              <th>Ilość_S</th>
+              {currentView === 'STRUCTURE' && <th>Lp_S</th>}
+              {currentView === 'STRUCTURE' && <th>Ilość_S</th>}
               <th>Lp_P</th>
               <th>Ilość_P</th>
               <th>Typ</th>
@@ -70,15 +115,17 @@ export default function BomTable() {
             </tr>
           </thead>
           <tbody>
-            {daneBOM.length === 0 ? (
+            {processedData.length === 0 ? (
               <tr>
-                <td colSpan="21" style={{ textAlign: 'center' }}>Brak danych w magazynie lub czekamy na odpowiedź chmury...</td>
+                <td colSpan={currentView === 'STRUCTURE' ? "20" : "18"} style={{ textAlign: 'center', padding: '30px' }}>
+                  Brak części pasujących do wybranego widoku.
+                </td>
               </tr>
             ) : (
-              daneBOM.map((part) => (
-                <tr key={part.id}>
-                  <td>{part.structure_id}</td>
-                  <td>{part.structure_quantity}</td>
+              processedData.map((part) => (
+                <tr key={part.structure_id}>
+                  {currentView === 'STRUCTURE' && <td>{part.structure_id}</td>}
+                  {currentView === 'STRUCTURE' && <td>{part.structure_quantity}</td>}
                   <td>{part.parts_id}</td>
                   <td>{part.parts_quantity}</td>
                   <td>{part.type}</td>

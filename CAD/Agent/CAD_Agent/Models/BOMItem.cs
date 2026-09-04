@@ -1,129 +1,79 @@
-﻿/*
- * LISTA strukturalna:
- * 
- * Structure_ID -> "Nr"  
- * Structure_Quantity -> "Ilość"
- * 
- * FILENAME -> "Numer części"
- * THUMBNAIL -> "Miniatura"
- * 
- * 1. TYPE - > "Typ" 
- * 2. TITLE -> "Nazwa" 
- * 3. PROVIDER -> "Dostawca"
- * 4. MATERIAL NAME -> "Rodzaj materiału"
- * 5. THICKNESS -> "Grubość"
- * 6. WIDTH -> "Szerokość"
- * 7. LENGTH -> "Długość"
- * 8. MECHANICAL MATERIAL -> Materiał
- * 9. FINISH -> "Wykończenie"
- * 10. COLOR -> "Kolor"
- * 11. MASS -> "Masa"
- * 12. DXF -> "Data wygenerowania Dxf"
- */
-
-/*
- * LISTA Części: 
- * 
- * Parts_ID -> "Nr"  
- * Parts_Quantity -> "Ilość"
- * 
- * FILENAME -> "Numer części"
- * THUMBNAIL -> "Miniatura"
- * 
- * 1. TYPE - > "Typ" 
- * 2. TITLE -> "Nazwa" 
- * 3. PROVIDER -> "Dostawca"
- * 4. MATERIAL NAME -> "Rodzaj materiału"
- * 5. THICKNESS -> "Grubość"
- * 6. WIDTH -> "Szerokość"
- * 7. LENGTH -> "Długość"
- * 8. MECHANICAL MATERIAL -> Materiał
- * 9. FINISH -> "Wykończenie"
- * 10. COLOR -> "Kolor"
- * 11. MASS -> "Masa"
- * 12. DXF -> "Data wygenerowania Dxf"
- */
-
-namespace CAD_Agent.Models
+﻿namespace CAD_Agent.Models
 {
     public class BOMItem
-    {
-        [JsonProperty("project_name")]
-        public string ProjectName { get; set; }
-
-        [JsonProperty("structure_id")]
-        public string Structure_ID { get; set; }        // Nr w strukturze
-
-
+    {      
+        [JsonProperty("structure_id")] // Primary key
+        public string Structure_ID { get; set; }   
+        
         [JsonProperty("structure_quantity")]
-        public int Structure_Quantity { get; set; }  // Ilość na poziomie danego złożenia. Zliczana podczas skanowania.
+        public int Structure_Quantity { get; set; }  
 
-
-        [JsonProperty("parts_id")]
-        public int Parts_ID { get; set; }            // Nr w liście części
-
-
+        
+        [JsonProperty("parts_id")]  // Partial key (unique within type)
+        public int Parts_ID { get; set; }  
+        
         [JsonProperty("parts_quantity")]
-        public int PARTS_Quantity { get; set; }         // Ilość z właściwości. Całkowita ilość do Listy Części.
+        public int PARTS_Quantity { get; set; }
+
+        
+        [JsonProperty("part_number")] // NOT NULL
+        public string PartNumber { get; set; }
+
+        [JsonProperty("thumbnail")] // NOT NULL
+        public string Thumbnail { get; set; }
+
+        [JsonProperty("drawing")]
+        public string Drawing { get; set; }
 
 
-        [JsonProperty("type")]
-        public string Type { get; set; }                // Typ
-
-
-        [JsonProperty("part_number")]
-        public string PartNumber { get; set; }          // Numer części (FileName)
-
+        [JsonProperty("type")] // NOT NULL
+        public string Type { get; set; }               
 
         [JsonProperty("title")]
-        public string Title { get; set; }               // Nazwa
-
+        public string Title { get; set; }               
 
         [JsonProperty("provider")]
-        public string Provider { get; set; }            // Dostawca
-
+        public string Provider { get; set; }    
+        
 
         [JsonProperty("material_name")]
-        public string MaterialName { get; set; }        // Rodzaj materiału (MaterialName)
+        public string MaterialName { get; set; }
+
+        [JsonProperty("mechanical_material")]
+        public string MechanicalMaterial { get; set; }
 
 
         [JsonProperty("thickness")]
-        public double Thickness { get; set; }           // Grubość [mm]
-
+        public double Thickness { get; set; }           
 
         [JsonProperty("size_x")]
-        public double SizeX { get; set; }               // Szerokość [mm]
-
+        public double SizeX { get; set; }               
 
         [JsonProperty("size_y")]
-        public double SizeY { get; set; }               // Długość [mm]
+        public double SizeY { get; set; }               
 
-
-        [JsonProperty("mechanical_material")]
-        public string MechanicalMaterial { get; set; }            // Materiał (MechanicalMaterial)
-
-
-        [JsonProperty("class")]
-        public string Class { get; set; }               // Klasa
-
-
+          
         [JsonProperty("finish")]
-        public string Finish { get; set; }              // Wykończenie
-
+        public string Finish { get; set; }              
 
         [JsonProperty("color")]
-        public string Color { get; set; }               // Kolor
-
+        public string Color { get; set; }
+        
 
         [JsonProperty("mass")]
-        public double Mass { get; set; }                // Masa (Jedn.)
+        public double Mass { get; set; }
+        [JsonProperty("class")]
+        public string Class { get; set; }
 
 
         [JsonProperty("dxf_date")]
-        public string DxfDate { get; set; }             // Data Dxf
+        public string DxfDate { get; set; }
 
 
-        [JsonProperty("thumbnail")]
-        public string Thumbnail { get; set; }           // Miniatura
+        [JsonProperty("type_name")] // NOT NULL
+        public string TypeName { get; set; }
+
+        [JsonProperty("project_name")] // NOT NULL
+        public string ProjectName { get; set; }
     }
 }

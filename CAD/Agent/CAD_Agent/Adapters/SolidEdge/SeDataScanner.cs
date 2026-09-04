@@ -7,7 +7,12 @@ namespace CAD_Agent.Adapters.SolidEdge
         private static readonly Dictionary<string, BOMItem> globalCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, int> typeCounters = new(StringComparer.OrdinalIgnoreCase);
 
-        public static void Scan(SeOccurrences occurrences, List<BOMItem> bomData, string prefix, Dictionary<string, string> projectFiles)
+        public static void Scan(SeOccurrences occurrences,
+                                List<BOMItem> bomData, 
+                                string prefix, 
+                                Dictionary<string, string> projectFiles, 
+                                Dictionary<string, string> thumbnails,
+                                string thumbnailsDirectory)
         {
             Dictionary<string, BOMItem> internalCache = new(StringComparer.OrdinalIgnoreCase);
             int levelCounter = 0;
@@ -79,17 +84,25 @@ namespace CAD_Agent.Adapters.SolidEdge
 
                         using SePropertiesReader reader = new(document);
 
-                        newItem.Type = reader.Type;
                         newItem.PARTS_Quantity = reader.Quantity;
+
+                        newItem.Type = reader.Type;
                         newItem.Title = reader.TitleEng ?? reader.TitlePl;
                         newItem.Provider = reader.Provider;
+
                         newItem.MaterialName = reader.MaterialName;
+                        newItem.MechanicalMaterial = reader.MechanicalMaterial;
+
                         newItem.Thickness = reader.Thickness;
                         newItem.SizeX = reader.SizeX;
                         newItem.SizeY = reader.SizeY;
-                        newItem.MechanicalMaterial = reader.MechanicalMaterial;
+
                         newItem.Finish = reader.Finish;
                         newItem.Color = reader.Color;
+
+                        //newItem.Mass = reader.Mass;
+                        //newItem.Class = reader.Class; 
+
                         newItem.DxfDate = reader.DxfDate;
                         
                         string typ = string.IsNullOrEmpty(newItem.Type) ? "Brak" : newItem.Type;
@@ -101,6 +114,24 @@ namespace CAD_Agent.Adapters.SolidEdge
 
                         newItem.Parts_ID = typeCounters[typ];
 
+                        if (!thumbnails.ContainsKey(OccurrenceName))
+                        {
+                            string thumbnailPath = Path.Combine(thumbnailsDirectory, $"{OccurrenceName}.jpg");
+                            try
+                            {
+                                SeHelper.ExtractAndSaveThumbnail(OccurrencePath, thumbnailPath, 256);
+                                thumbnails[OccurrenceName] = thumbnailPath;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"{indent} [!] Nie udało się wygenerować miniatury dla {OccurrenceName}: {ex.Message}");
+                                Console.ResetColor();
+                            }
+                        }
+
+                        newItem.Thumbnail = $"{OccurrenceName}.jpg";
+
                         globalCache[OccurrenceName] = newItem;
                     }
                     else
@@ -111,19 +142,26 @@ namespace CAD_Agent.Adapters.SolidEdge
 
                         newItem.Parts_ID = cachedItem.Parts_ID;
                         newItem.PARTS_Quantity = cachedItem.PARTS_Quantity;
+
+                        newItem.Thumbnail = cachedItem.Thumbnail;
+
                         newItem.Type = cachedItem.Type;
                         newItem.Title = cachedItem.Title;
                         newItem.Provider = cachedItem.Provider;
+
                         newItem.MaterialName = cachedItem.MaterialName;
+                        newItem.MechanicalMaterial = cachedItem.MechanicalMaterial;
+
                         newItem.Thickness = cachedItem.Thickness;
                         newItem.SizeX = cachedItem.SizeX;
-                        newItem.SizeY = cachedItem.SizeY;
-                        newItem.MechanicalMaterial = cachedItem.MechanicalMaterial;
-                        newItem.Class = cachedItem.Class;
+                        newItem.SizeY = cachedItem.SizeY;  
+                        
                         newItem.Finish = cachedItem.Finish;
                         newItem.Color = cachedItem.Color;
+
                         newItem.Mass = cachedItem.Mass;
-                        newItem.Thumbnail = cachedItem.Thumbnail;
+                        newItem.Class = cachedItem.Class;
+
                         newItem.DxfDate = cachedItem.DxfDate;
                     }
 
@@ -140,7 +178,7 @@ namespace CAD_Agent.Adapters.SolidEdge
                             try
                             {
                                 subOccurrences = subAssemblyDoc.Occurrences;
-                                Scan(subOccurrences, bomData, currentStructureID, projectFiles);
+                                Scan(subOccurrences, bomData, currentStructureID, projectFiles, thumbnails, thumbnailsDirectory);
                             }
                             finally
                             {

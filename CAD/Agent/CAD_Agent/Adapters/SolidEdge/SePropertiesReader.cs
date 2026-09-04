@@ -1,6 +1,6 @@
 ﻿namespace CAD_Agent.Adapters.SolidEdge
 {
-    public class SePropertiesReader : IDisposable
+    internal class SePropertiesReader : IDisposable
     {
         private SeFilePropertySets _filePropertySets = null;
         private SePropertySets _docPropertySets = null;
