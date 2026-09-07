@@ -34,11 +34,11 @@ namespace CAD_Agent
                 return;
             }
 
-            string topLevelAssemblyPath = args[0];
-            if (!File.Exists(topLevelAssemblyPath))
+            string topLevelAssembly_Path = args[0];
+            if (!File.Exists(topLevelAssembly_Path))
             {
                 Console.WriteLine();
-                Console.WriteLine($"Plik pod ściężką {topLevelAssemblyPath} nie istnieje.");
+                Console.WriteLine($"Plik pod ściężką {topLevelAssembly_Path} nie istnieje.");
                 Console.WriteLine();
 
                 Console.WriteLine("Naciśnij dowolny klawisz, aby zamknąć...");
@@ -46,15 +46,18 @@ namespace CAD_Agent
                 return;
             }
 
-            string topLevelAssemblyName = Path.GetFileNameWithoutExtension(topLevelAssemblyPath);
-            string projectDirectory = Path.GetDirectoryName(topLevelAssemblyPath);
+            string topLevelAssembly_Name = Path.GetFileNameWithoutExtension(topLevelAssembly_Path);
+            string topLevelAssembly_Extension = Path.GetExtension(topLevelAssembly_Path);
+            string project_Directory = Path.GetDirectoryName(topLevelAssembly_Path);
+
             Console.WriteLine();
             Console.WriteLine("1. Wybór pliku głównego złożenia pod dane dla BOM VIEW:");
             Console.WriteLine();
+            Console.WriteLine($"{"Nazwa pliku",-40}| {"Folder projektu",-60}|");
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine($"Nazwa pliku: {topLevelAssemblyName}");
-            Console.WriteLine($"Ścieżka do pliku: {topLevelAssemblyPath}");
-            Console.WriteLine($"Folder projektu: {projectDirectory}");
+            string fullFileName = $"{topLevelAssembly_Name}{topLevelAssembly_Extension}";
+            Console.WriteLine($"{fullFileName,-40}| {project_Directory,-60}|");
+
             Console.ResetColor();
             Console.WriteLine();
             Console.WriteLine($"Czy na pewno chcesz kontynuować?");
@@ -92,16 +95,16 @@ namespace CAD_Agent
 
             try
             {
-                var adapter = CADAdapterFactory.GetAdapter(topLevelAssemblyPath);
-                var bomData = adapter.GetBOMData(topLevelAssemblyPath);
+                var adapter = CADAdapterFactory.GetAdapter(topLevelAssembly_Path);
+                var bomData = adapter.GetBOMData(topLevelAssembly_Path);
                 var supaBaseService = new SupabaseService();
                 foreach (var item in bomData)
                 {
-                    item.ProjectName = topLevelAssemblyName;
+                    item.ProjectName = topLevelAssembly_Name;
 
                     if (!string.IsNullOrEmpty(item.Thumbnail))
                     {
-                        item.Thumbnail = supaBaseService.GetPublicThumbnailUrl(topLevelAssemblyName, item.Thumbnail);
+                        item.Thumbnail = supaBaseService.GetPublicThumbnailUrl(topLevelAssembly_Name, item.Thumbnail);
                     }
                 }
 
@@ -109,9 +112,9 @@ namespace CAD_Agent
                 Console.WriteLine("============================================================");
                 Console.WriteLine("Rozpoczynamy synchronizację z bazą danych...");
                 Console.WriteLine("Trwa weryfikacja i wysyłka miniatur na serwer plików...");
-                await supaBaseService.UploadThumbnailsAsync(projectDirectory, topLevelAssemblyName);
-                Console.WriteLine($"Czyszczenie starych danych dla projektu: {topLevelAssemblyName}...");
-                await supaBaseService.DeleteProjectDataAsync(topLevelAssemblyName);
+                await supaBaseService.UploadThumbnailsAsync(project_Directory, topLevelAssembly_Name);
+                Console.WriteLine($"Czyszczenie starych danych dla projektu: {topLevelAssembly_Name}...");
+                await supaBaseService.DeleteProjectDataAsync(topLevelAssembly_Name);
                 Console.WriteLine("Wysyłanie zaktualizowanego zestawienia BOM...");
                 await supaBaseService.UploadBOMDataAsync(bomData);
                 Console.WriteLine();

@@ -1,13 +1,19 @@
-import './App.css'
-import BomTable from './components/BomTable' 
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import ProjectView from './pages/ProjectView';
 
 function App() {
   return (
-    <div className="bom-container">
-      <h1>BOM VIEW</h1>
-      <BomTable />     
-    </div>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/project/:id" element={<ProjectView />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
