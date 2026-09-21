@@ -34,6 +34,54 @@ export default function ProjectView() {
     fetchDataFromCloud(); 
   }, []); 
 
+  const handleSortStructure = () => {
+    const dataCopy = JSON.parse(JSON.stringify(bomData));
+
+    const nodeMap = new Map();
+    const root = { children: [] };
+
+    dataCopy.forEach(item => {
+      item.children = [];
+      nodeMap.set(item.structure_id, item);
+    });
+
+    dataCopy.forEach(item => {
+      const parts = item.structure_id.split('.');
+      if (parts.length === 1) {
+        root.children.push(nodeMap.get(item.structure_id)); 
+      } else {
+        const parentId = parts.slice(0, -1).join('.');
+        const parent = nodeMap.get(parentId);
+        if (parent) {
+          parent.children.push(nodeMap.get(item.structure_id));
+        } else {
+          root.children.push(nodeMap.get(item.structure_id)); 
+        }
+      }
+    });
+
+    const result = [];
+    
+    const sortAndFlatten = (node, prefix) => {
+      node.children.sort((a, b) => (a.part_number || '').localeCompare(b.part_number || ''));
+      
+      node.children.forEach((child, index) => {
+        const newId = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+        child.structure_id = newId; 
+        
+        const { children, ...cleanItem } = child; 
+        result.push(cleanItem);
+        
+        sortAndFlatten(child, newId); 
+      });
+    };
+
+    sortAndFlatten(root, ''); 
+    
+    setBomData(result);
+  };
+  // ==========================================
+
   let processedData = bomData.filter((part) => {
     if (currentView === 'STRUCTURE') return true; 
     if (currentView === 'ASSEMBLIES') return part.type === 'A'; 
@@ -53,12 +101,33 @@ export default function ProjectView() {
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '20px' }}>
-      <div style={{ padding: '20px 20px 0 20px', color: 'white' }}>
+    <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto', padding: '20px 40px' }}>
+      
+      <div style={{ padding: '0 0 20px 0', color: 'white' }}>
         <h2>Panel Projektu (BOM VIEW)</h2>
       </div>
 
-      {errorMsg && <p style={{ color: 'red', padding: '0 20px' }}>Błąd bazy: {errorMsg}</p>}
+      <div style={{ paddingBottom: '20px', display: 'flex', gap: '10px' }}>
+        <button 
+          onClick={handleSortStructure}
+          disabled={currentView !== 'STRUCTURE'} 
+          style={{
+            backgroundColor: currentView === 'STRUCTURE' ? '#3b82f6' : '#334155', 
+            color: currentView === 'STRUCTURE' ? '#ffffff' : '#94a3b8',
+            border: 'none', padding: '10px 16px', borderRadius: '6px', 
+            cursor: currentView === 'STRUCTURE' ? 'pointer' : 'not-allowed',
+            fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px',
+            transition: 'background-color 0.2s'
+          }}
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+          </svg>
+          Sortuj Strukturalnie (A-Z)
+        </button>
+      </div>
+
+      {errorMsg && <p style={{ color: 'red' }}>Błąd bazy: {errorMsg}</p>}
 
       <BomFilters currentView={currentView} setCurrentView={setCurrentView} />
 

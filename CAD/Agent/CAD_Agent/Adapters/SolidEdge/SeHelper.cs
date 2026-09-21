@@ -2,6 +2,41 @@
 {
     internal class SeHelper
     {
+        public static string GetExtendedType(string type)
+        {
+            if ( type == Constants.SePartTypes.Assembly)
+            {
+                return Constants.SePartTypes.AssemblyExtended;
+            }
+
+            if (type == Constants.SePartTypes.Part)
+            {
+                return Constants.SePartTypes.PartExtended;
+            }
+
+            if (type == Constants.SePartTypes.SheetMetal)
+            {
+                return Constants.SePartTypes.SheetMetalExtended;
+            }
+
+            if (type == Constants.SePartTypes.Commercial)
+            {
+                return Constants.SePartTypes.CommercialExtended;
+            }
+
+            if (type == Constants.SePartTypes.Steelmaking)
+            {
+                return Constants.SePartTypes.SteelmakingExtended;
+            }
+
+            if (type == Constants.SePartTypes.Standard)
+            {
+                return Constants.SePartTypes.StandardExtended;
+            }
+
+            return null;
+        }
+
         public static void ReleaseCom<T>(ref T comObject) where T : class
         {
             if (comObject != null)

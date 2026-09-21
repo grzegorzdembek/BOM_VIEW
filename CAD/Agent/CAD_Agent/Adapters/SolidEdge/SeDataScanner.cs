@@ -83,28 +83,24 @@ namespace CAD_Agent.Adapters.SolidEdge
                         document = (SeDocument)occurrence.OccurrenceDocument;
 
                         using SePropertiesReader reader = new(document);
+                        string type = reader.Type;
 
                         newItem.PARTS_Quantity = reader.Quantity;
-
-                        newItem.Type = reader.Type;
+                        newItem.Type = type;
                         newItem.Title = reader.TitleEng ?? reader.TitlePl;
                         newItem.Provider = reader.Provider;
-
                         newItem.MaterialName = reader.MaterialName;
                         newItem.MechanicalMaterial = reader.MechanicalMaterial;
-
                         newItem.Thickness = reader.Thickness;
                         newItem.SizeX = reader.SizeX;
                         newItem.SizeY = reader.SizeY;
-
                         newItem.Finish = reader.Finish;
                         newItem.Color = reader.Color;
-
                         //newItem.Mass = reader.Mass;
-                        //newItem.Class = reader.Class; 
-
+                        //newItem.Class = reader.Class;
                         newItem.DxfDate = reader.DxfDate;
-                        
+                        newItem.TypeName = SeHelper.GetExtendedType(type);
+
                         string typ = string.IsNullOrEmpty(newItem.Type) ? "Brak" : newItem.Type;
                         if (!typeCounters.ContainsKey(typ))
                         {
@@ -163,6 +159,7 @@ namespace CAD_Agent.Adapters.SolidEdge
                         newItem.Class = cachedItem.Class;
 
                         newItem.DxfDate = cachedItem.DxfDate;
+                        newItem.TypeName = cachedItem.TypeName;
                     }
 
                     internalCache.Add(OccurrenceName, newItem);

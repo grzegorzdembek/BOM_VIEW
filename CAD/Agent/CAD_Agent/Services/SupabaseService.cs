@@ -20,12 +20,46 @@ namespace CAD_Agent.Services
             _apiKey = secrets[1].Trim();
         }
 
+        public async Task<Dictionary<string, Queue<BOMItem>>> GetProjectDataAsync(string projectName)
+        {
+            HttpClient client = new();
+            client.DefaultRequestHeaders.Add("apikey", _apiKey);
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+
+            string queryUrl = $"{_url}?project_name=eq.{Uri.EscapeDataString(projectName)}";
+
+            var response = await client.GetAsync(queryUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string errorResponse = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Nie udało się pobrać danych początkowych: {response.StatusCode}. Szczegóły: {errorResponse}");
+            }
+            string jsonResponse = await response.Content.ReadAsStringAsync();
+            var items = JsonConvert.DeserializeObject<List<BOMItem>>(jsonResponse) ?? new List<BOMItem>();
+
+            var cloudData = new Dictionary<string, Queue<BOMItem>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in items)
+            {
+                if (!cloudData.ContainsKey(item.PartNumber))
+                {
+                    cloudData[item.PartNumber] = new Queue<BOMItem>();
+                }
+
+                cloudData[item.PartNumber].Enqueue(item);
+            }
+
+            return cloudData;
+        }
+
         public async Task UploadBOMDataAsync(List<BOMItem> bomData)
         {
             string jsonBody = JsonConvert.SerializeObject(bomData);
-            var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
 
-            HttpClient client = new();
+            StringContent content = new (jsonBody, Encoding.UTF8, "application/json");
+            HttpClient client = new ();
+
             client.DefaultRequestHeaders.Add("apikey", _apiKey);
             client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
             client.DefaultRequestHeaders.Add("Prefer", "return=minimal");
