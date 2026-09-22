@@ -5,18 +5,24 @@ namespace CAD_Agent.Adapters.SolidEdge
 {
     internal class SeAdapter : ICADAdapter
     {
-        public List<BOMItem> GetBOMData(string filePath)
+        public List<BOMItem> GetBOMData(string filePath, Dictionary<string, Queue<BOMItem>> cloudProjectData)
         {
             string projectDirectory = Path.GetDirectoryName(filePath);
             string thumbnailsDirectory = Path.Combine(projectDirectory, "Miniatury");
             Directory.CreateDirectory(thumbnailsDirectory);
 
-            Dictionary<string, string> projectFiles = Directory
-                .GetFiles(projectDirectory, "*.*", SearchOption.AllDirectories)
-                .Where(f => f.EndsWith(".asm", StringComparison.OrdinalIgnoreCase) ||
-                            f.EndsWith(".par", StringComparison.OrdinalIgnoreCase) ||
-                            f.EndsWith(".psm", StringComparison.OrdinalIgnoreCase))
-                .ToDictionary(f => Path.GetFileNameWithoutExtension(f), f => Path.GetExtension(f).ToLower());
+            DirectoryInfo dirInfo = new (projectDirectory);
+
+            Dictionary<string, (string Extension, DateTime ModifiedDate)> projectFiles = dirInfo
+                .EnumerateFiles("*.*", SearchOption.AllDirectories)
+                .Where(f => f.Extension.Equals(".asm", StringComparison.OrdinalIgnoreCase) ||
+                            f.Extension.Equals(".par", StringComparison.OrdinalIgnoreCase) ||
+                            f.Extension.Equals(".psm", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(
+                    f => Path.GetFileNameWithoutExtension(f.Name),
+                    f => (Extension: f.Extension.ToLower(), ModifiedDate: f.LastWriteTimeUtc),
+                    StringComparer.OrdinalIgnoreCase
+                );
 
             Dictionary<string, string> thumbnails = Directory
                 .GetFiles(thumbnailsDirectory, "*.jpg", SearchOption.TopDirectoryOnly)
@@ -62,7 +68,8 @@ namespace CAD_Agent.Adapters.SolidEdge
                                        string.Empty, 
                                        projectFiles, 
                                        thumbnails, 
-                                       thumbnailsDirectory);
+                                       thumbnailsDirectory,
+                                       cloudProjectData);
                 }
                 finally
                 {

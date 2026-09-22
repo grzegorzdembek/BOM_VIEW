@@ -4,6 +4,6 @@ namespace CAD_Agent.Interfaces
 {
     public interface ICADAdapter
     {
-        List<BOMItem> GetBOMData(string filePath);
+        List<BOMItem> GetBOMData(string filePath, Dictionary<string, Queue<BOMItem>> cloudProjectData);
     }
 }

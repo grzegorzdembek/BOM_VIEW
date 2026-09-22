@@ -42,9 +42,9 @@ namespace CAD_Agent
             Console.ForegroundColor = ConsoleColor.Magenta; Console.WriteLine($"{fullFileName,-40}| {projectDirectory,-60}|"); Console.ResetColor();
              
             Console.WriteLine(); Console.WriteLine("Wybierz tryb pracy Agenta:"); Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("[ 1 ] PUSH MODE - Przygotowuje dane z otwartego złożenia i wysyła je do bazy.");
-            Console.WriteLine("[ 2 ] PULL MODE - Pobiera dane z bazy i modyfikuje właściwości plików. ");
-            Console.ForegroundColor = ConsoleColor.DarkYellow; Console.WriteLine("[ 0 ] Anuluj i wyjdź"); Console.ResetColor(); Console.Write("Wybierz opcję: ");
+            Console.WriteLine("[ 1 ] PUSH.");
+            Console.WriteLine("[ 2 ] PULL MODE. ");
+            Console.ForegroundColor = ConsoleColor.DarkYellow; Console.WriteLine("[ 0 ] Cancel and exit"); Console.ResetColor(); Console.Write("Wybierz opcję: ");
 
             while (true)
             {
@@ -53,7 +53,7 @@ namespace CAD_Agent
                 if (keyInfo.Key == ConsoleKey.D1 || keyInfo.Key == ConsoleKey.NumPad1)
                 {
                     Console.WriteLine("1"); Console.WriteLine(); 
-                    Console.ForegroundColor = ConsoleColor.Green; Console.WriteLine("Potwierdzono. Trwa uruchamianie PUSH MODE..."); Console.ResetColor();
+                    Console.ForegroundColor = ConsoleColor.Green; Console.WriteLine("Push mode starts..."); Console.ResetColor();
 
                     try { await PushMode.ExecuteAsync(topLvlAsmPath, topLvlAsmName, projectDirectory); }
                     catch (Exception ex) { Console.WriteLine(); Console.ForegroundColor = ConsoleColor.Red; Console.WriteLine($"BŁĄD W TRYBIE PUSH: {ex.Message}"); Console.ResetColor(); }

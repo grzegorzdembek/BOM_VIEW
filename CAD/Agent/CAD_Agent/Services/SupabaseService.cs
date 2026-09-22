@@ -35,6 +35,7 @@ namespace CAD_Agent.Services
                 string errorResponse = await response.Content.ReadAsStringAsync();
                 throw new Exception($"Nie udało się pobrać danych początkowych: {response.StatusCode}. Szczegóły: {errorResponse}");
             }
+
             string jsonResponse = await response.Content.ReadAsStringAsync();
             var items = JsonConvert.DeserializeObject<List<BOMItem>>(jsonResponse) ?? new List<BOMItem>();
 
